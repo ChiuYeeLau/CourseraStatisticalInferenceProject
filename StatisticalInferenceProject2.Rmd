@@ -1,0 +1,81 @@
+---
+title: "Statistical Inference Course Project 2"
+author: "Xiaoyi Leo Liu"
+output: pdf_document
+---
+
+### Overview ###
+
+In this project, we are going to analyze the ToothGrowth data in the R datasets package.  
+
+1. Load the ToothGrowth data in the R datasets package and perform some basic exploratory data analyses.
+
+2. Provide a basic summary of the data.
+
+3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose (only use the techniques from class, even if there's other approaches worth considering).
+
+4. State our conclusions and the assumptions needed for our conclusions.
+
+### Load Data and Basic Summary ###
+
+```{r}
+library(datasets)
+data(ToothGrowth)
+str(ToothGrowth)
+head(ToothGrowth)
+```
+
+We can see that the 'dose' and 'supp' in the dataset are discrete factors.
+
+```{r}
+ToothGrowth$dose = as.factor(ToothGrowth$dose)
+ToothGrowth$supp = as.factor(ToothGrowth$supp)
+summary(ToothGrowth)
+```
+
+We also plot the length of teeth versus dose with different supplements.
+
+```{r, fig.height = 4, fig.width = 5}
+library(ggplot2)
+plt = ggplot(ToothGrowth, aes(x = dose, y = len, fill = dose)) + geom_boxplot(notch = FALSE) + facet_grid(.~ supp) + scale_x_discrete("Dose (Milligram)") + scale_y_continuous("Length of Teeth")
+plt
+```
+
+### Comparing Tooth Growth ###
+
+In this section, we use confidence intervals and hypothesis tests to compare tooth growth by **supp** and **dose**. The null hypothesis we assume is that the means of the two tested groups are equal, while the alternative one is the observed difference in tooth lengths is significant. We will reject the null hypothesis if the corresponding p-value is less than 0.05.
+
+First, we will investigate the effect of supplement type on the growth of tooth for each type of dose.
+
+```{r}
+supp_dose05 = t.test(len ~ supp, data = subset(ToothGrowth, dose = 0.5), var.equal = FALSE)
+supp_dose1 = t.test(len ~ supp, data = subset(ToothGrowth, dose = 1), var.equal = FALSE)
+supp_dose2 = t.test(len ~ supp, data = subset(ToothGrowth, dose = 2), var.equal = FALSE)
+
+supp_dose = data.frame(rownames = c("dose = 0.5", "dose = 1.0", "dose = 2.0"), "p-value" = c(supp_dose05$p.value, supp_dose1$p.value, supp_dose2$p.value), "Conf_Low" = c(supp_dose05$conf[1], supp_dose1$conf[1], supp_dose2$conf[1]), "Conf_High" = c(supp_dose05$conf[2], supp_dose1$conf[2], supp_dose2$conf[2]))
+
+supp_dose
+```
+
+Second, we will test the effect of dosages on tooth length.
+
+```{r}
+suppVC_dose05_1 = t.test(len ~ dose, data = subset(ToothGrowth, supp == 'VC' & (dose == 0.5 |dose == 1.0)), var.equal = FALSE)
+suppOJ_dose05_1 = t.test(len ~ dose, data = subset(ToothGrowth, supp == 'OJ' & (dose == 0.5 |dose == 1.0)), var.equal = FALSE)
+
+suppVC_dose05_2 = t.test(len ~ dose, data = subset(ToothGrowth, supp == 'VC' & (dose == 0.5 |dose == 2.0)), var.equal = FALSE)
+suppOJ_dose05_2 = t.test(len ~ dose, data = subset(ToothGrowth, supp == 'OJ' & (dose == 0.5 |dose == 2.0)), var.equal = FALSE)
+
+suppVC_dose1_2 = t.test(len ~ dose, data = subset(ToothGrowth, supp == 'VC' & (dose == 1.0 |dose == 2.0)), var.equal = FALSE)
+suppOJ_dose1_2 = t.test(len ~ dose, data = subset(ToothGrowth, supp == 'OJ' & (dose == 1.0 |dose == 2.0)), var.equal = FALSE)
+
+
+dose_supp = data.frame(rownames = c("supp = 'VC', dose = 0.5 or 1", "supp = 'OJ', dose = 0.5 or 1", "supp = 'VC', dose = 0.5 or 2", "supp = 'OJ', dose = 0.5 or 2", "supp = 'VC', dose = 1 or 2", "supp = 'OJ', dose = 1 or 2"), "p-value" = c(suppVC_dose05_1$p.value, suppOJ_dose05_1$p.value, suppVC_dose05_2$p.value, suppOJ_dose05_2$p.value, suppVC_dose1_2$p.value, suppOJ_dose1_2$p.value), "Conf_Low" = c(suppVC_dose05_1$conf[1], suppOJ_dose05_1$conf[1], suppVC_dose05_2$conf[1], suppOJ_dose05_2$conf[1], suppVC_dose1_2$conf[1], suppOJ_dose1_2$conf[1]), "Conf_High" = c(suppVC_dose05_1$conf[2], suppOJ_dose05_1$conf[2], suppVC_dose05_2$conf[2], suppOJ_dose05_2$conf[2], suppVC_dose1_2$conf[2], suppOJ_dose1_2$conf[2]))
+dose_supp
+```
+
+### Conclusions ###
+
+Comparing the p-value with the threshold 0.05, we can see that the null hypothesis is favored when comparing supp = "VC" and "OJ".
+
+When we test the effect of dosages on tooth length, we find all the p-values are significantly smaller than the threshold, which means the null hypothesis should be rejected and the increase in tooth growth when supplement dose is increased is significant.
